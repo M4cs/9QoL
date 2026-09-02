@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://github.com/M4cs/9QoL/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/M4cs/9QoL?style=for-the-badge&label=Download&color=e0a63a"></a>
   <a href="https://thunderstore.io/c/9-kings/"><img alt="Thunderstore" src="https://img.shields.io/badge/Thunderstore-9%20Kings-2b6cb0?style=for-the-badge"></a>
-  <a href="https://www.nexusmods.com/9kings"><img alt="Nexus Mods" src="https://img.shields.io/badge/Nexus%20Mods-9%20Kings-d97a2b?style=for-the-badge"></a>
+  <a href="https://www.nexusmods.com/9kings/mods/5"><img alt="Nexus Mods" src="https://img.shields.io/badge/Nexus%20Mods-9%20Kings-d97a2b?style=for-the-badge"></a>
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/License-MIT-6b7280?style=for-the-badge"></a>
 </p>
 
