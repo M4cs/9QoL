@@ -1,0 +1,103 @@
+name: Release
+
+# Pushing a tag like v1.4.0 packages the plugin and publishes a GitHub
+# Release with:
+#   - NineQoL-<version>-thunderstore.zip  (manifest.json, icon.png, README,
+#                                          CHANGELOG, NineQoL.dll at the root;
+#                                          upload as-is to Thunderstore)
+#   - NineQoL-<version>-nexus.zip         (BepInEx/plugins/NineQoL.dll + docs;
+#                                          drop-in layout for Nexus / manual)
+#
+# The plugin is built locally (it needs the game's interop assemblies, which
+# are not in the repo) and the resulting dist/NineQoL.dll is committed.
+# The workflow checks that the tag, Plugin.cs and manifest.json all agree on
+# the version before it publishes anything.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Resolve and verify version
+        id: version
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME#v}"
+          PLUGIN="$(grep -oP 'PluginVersion = "\K[^"]+' Plugin.cs)"
+          MANIFEST="$(python3 -c 'import json; print(json.load(open("manifest.json"))["version_number"])')"
+          echo "tag=$TAG plugin=$PLUGIN manifest=$MANIFEST"
+          if [ "$TAG" != "$PLUGIN" ]; then
+            echo "::error::Tag version $TAG does not match PluginVersion $PLUGIN in Plugin.cs"; exit 1
+          fi
+          if [ "$TAG" != "$MANIFEST" ]; then
+            echo "::error::Tag version $TAG does not match version_number $MANIFEST in manifest.json"; exit 1
+          fi
+          if [ ! -f dist/NineQoL.dll ]; then
+            echo "::error::dist/NineQoL.dll is missing. Build locally and commit it before tagging."; exit 1
+          fi
+          if ! grep -q "^## $TAG" CHANGELOG.md; then
+            echo "::warning::CHANGELOG.md has no '## $TAG' section; release notes will be generic."
+          fi
+          echo "version=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          set -euo pipefail
+          V="${{ steps.version.outputs.version }}"
+          awk -v v="$V" '
+            $0 ~ "^## "v"$" { on=1; next }
+            on && /^## / { exit }
+            on { print }
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "See CHANGELOG.md for details." > notes.md
+          fi
+          {
+            echo ""
+            echo "---"
+            echo "**Install (manual):** copy \`BepInEx/plugins/NineQoL.dll\` from the nexus zip into your BepInEx IL2CPP install."
+            echo "**Thunderstore / r2modman:** use the thunderstore zip or install from the 9 Kings community."
+          } >> notes.md
+          echo "----- notes.md -----"; cat notes.md
+
+      - name: Package Thunderstore zip
+        run: |
+          set -euo pipefail
+          V="${{ steps.version.outputs.version }}"
+          rm -rf out/thunderstore && mkdir -p out/thunderstore
+          cp manifest.json icon.png README.md CHANGELOG.md LICENSE dist/NineQoL.dll out/thunderstore/
+          (cd out/thunderstore && zip -r -X "../NineQoL-$V-thunderstore.zip" .)
+          unzip -l "out/NineQoL-$V-thunderstore.zip"
+
+      - name: Package Nexus / manual-install zip
+        run: |
+          set -euo pipefail
+          V="${{ steps.version.outputs.version }}"
+          rm -rf out/nexus && mkdir -p out/nexus/BepInEx/plugins
+          cp dist/NineQoL.dll out/nexus/BepInEx/plugins/
+          cp README.md CHANGELOG.md LICENSE out/nexus/
+          (cd out/nexus && zip -r -X "../NineQoL-$V-nexus.zip" .)
+          unzip -l "out/NineQoL-$V-nexus.zip"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          V="${{ steps.version.outputs.version }}"
+          gh release create "$GITHUB_REF_NAME" \
+            "out/NineQoL-$V-thunderstore.zip" \
+            "out/NineQoL-$V-nexus.zip" \
+            --title "9 Qualities of Life $V" \
+            --notes-file notes.md \
+            --verify-tag

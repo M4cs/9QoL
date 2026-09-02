@@ -1,0 +1,9 @@
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.idea/
+*.swp
+# Local packaging output (the release workflow builds these on CI)
+out/
