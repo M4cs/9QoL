@@ -1,166 +1,147 @@
-# 9 Qualities of Life — 9 Kings BepInEx mod
+<p align="center">
+  <!-- Header banner: 1300 x 372 -->
+  <img src="docs/header.png" alt="9 Qualities of Life" width="1300">
+</p>
 
-Formerly "Troop Render Cap". Performance and quality-of-life improvements for 9 Kings.
+<h1 align="center">9 Qualities of Life</h1>
 
-Caps how many troops are *drawn* on screen without changing how many actually
-exist. All troops keep fighting, moving, and dealing damage at their real
-numbers — the ones over the cap simply aren't rendered. This cuts draw calls
-and (optionally) Unity Animator CPU time, which is the main source of slowdown
-and input lag in late Endless runs.
+<p align="center">
+  <b>Nine-and-then-some quality-of-life upgrades for <a href="https://store.steampowered.com/app/2784470/9_Kings/">9 Kings</a>.</b><br>
+  Less waiting, more information, smoother late-game. Nothing that changes the balance.
+</p>
 
-Since 1.1.0 the mod also adds:
+<p align="center">
+  <a href="https://github.com/M4cs/9QoL/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/M4cs/9QoL?style=for-the-badge&label=Download&color=e0a63a"></a>
+  <a href="https://thunderstore.io/c/9-kings/"><img alt="Thunderstore" src="https://img.shields.io/badge/Thunderstore-9%20Kings-2b6cb0?style=for-the-badge"></a>
+  <a href="https://www.nexusmods.com/9kings"><img alt="Nexus Mods" src="https://img.shields.io/badge/Nexus%20Mods-9%20Kings-d97a2b?style=for-the-badge"></a>
+  <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/License-MIT-6b7280?style=for-the-badge"></a>
+</p>
 
-- **In-game settings** (a dedicated "9 Qualities of Life" category in the options menu, styled like the game's own categories, with toggles for the card QoL features):
-  - *MAX VISIBLE TROOPS* — slider (25–1000) that drives the render caps below.
-  - *FPS LIMIT* — a clone of the game's own framerate slider, which the base
-    game only shows in the main-menu Graphics section. The clone proxies into
-    the real slider, so the game's own apply/persist pipeline does the work.
-    It hides itself whenever the real Graphics slider is visible.
-- **Card level breakdown** (1.2.0): loot/shop cards show a per-level count
-  under the card (e.g. `Lv. 1: 2   Lv. 2: 1`) of plots that already hold the same
-  card, so you can spot buildings/troops due for a level up at a glance.
-  Hidden for spells and cards you haven't placed yet.
-- **Upgrade plot glow** (reworked in 1.4.0): while you hold a card, every
-  plot the card would upgrade (same card placed there, not yet max level) is
-  marked for as long as you hold it — no need to hover. By default the mark
-  is the game's own plot marker, the one the calendar's blessing/cataclysm
-  preview switches on, so it looks exactly like a blessing marking.
-  `UpgradeGlowStyle` can switch this to `Tint` (whole plot tinted blue,
-  colour from `UpgradeGlowColor`, brighter while hovered) or `Outline` (the
-  card effect outline). Markings are re-asserted while the card is held, so
-  the game's own previews can't strip them, and are removed the moment the
-  card is placed or dropped.
-- **Hotkeys** (1.4.0): during the placing phase, **Space** presses START
-  BATTLE, **F** presses the king reroll button (when it is offered) and
-  holding **V** marks the plots the upcoming blessing/cataclysm will hit
-  (same as hovering the calendar entry). Keys are configurable
-  (`StartBattleKey`, `KingRerollKey`, `CataclysmPreviewKey`; InputSystem key
-  names, `None` to disable) and the whole feature has an in-game toggle. The
-  click hotkeys never fire while a card is being dragged, a menu / policy
-  screen is open, or a text field has focus. The game already uses R (quick
-  restart), C, I, K, O, P, Q, Tab and 1/2/3, so avoid those.
-- **Plot level labels** (1.4.0): every occupied plot shows an always-visible
-  "Lv 2/4" label (gold at max level). World-space TextMeshPro objects that use
-  the plot's own damage-text font and sorting layer. Format, size and vertical
-  position are configurable (`PlotLevelLabelFormat`, `PlotLevelLabelScale`,
-  `PlotLevelLabelVerticalOffset`).
-- **Faster animations** (1.4.0), three levers under one toggle:
-  - *Idle time-scale boost* (`IdleTimeScale`, default 2): between battles the
-    game speed is held at 2x. The game's own `Progress` helper drives nearly
-    every fade, card reveal, plot popup and level-up chain on scaled time, so
-    this speeds all of them without touching combat. Only applied while a
-    between-battle screen is up (placing view, loot, shop, prophet, policy)
-    and no enemy is alive; never while the pause menu is open or the game
-    itself has paused time.
-  - *UI animator speed* (`UiAnimatorSpeed`, default 1.5): Unity Animators in
-    the gameplay UI (card hover pops, panels, buttons) play faster. Only
-    animators at the default speed are touched.
-  - *Event pacing* (`EventDelayScale`, default 0.5): the wave options'
-    DelayBetweenEvents, TimeToNextWave and plot popup delays are halved. The
-    countdown before enemies arrive (TimeBeforeWave) is left alone.
-- **Multi-level triple speed**: with 3x active, clicking the 3x button again
-  cycles 3x → 4x → 10x → back to 3x. The button icon tints amber at 4x and red
-  at 10x. Pausing, slow-motion effects, and switching to 1x/2x are untouched —
-  the boost only engages while the game itself is running SuperFast (timescale
-  above 2.25) and is enforced in LateUpdate so it wins against the game's
-  timescale lerp. The speed steps are configurable (`SpeedCycleSpeeds`,
-  default `3,4,10`).
+---
 
-## How it works
+## ✨ What you get
 
-- A background component polls the game's `TroopSystem._validTroops` list on a
-  configurable interval (default 0.5 s).
-- Troops beyond the cap get `Renderer.forceRenderingOff = true` on every
-  `SpriteRenderer` the game registered for them (`Entity.m_Renderers`).
-  `forceRenderingOff` is a pure rendering flag — game logic never reads it, so
-  combat, targeting, movement, healing, and wave logic are untouched.
-- Optionally the Unity `Animator` on hidden troops is disabled too (default
-  on). The mod remembers exactly which animators *it* disabled and re-enables
-  only those when a troop becomes visible again, so it never fights the game's
-  own animator management.
-- Allies and enemies are capped independently. Bosses are always rendered.
-- Disabling the mod in the config restores every troop to visible.
+| | Feature | What it does |
+|---|---|---|
+| ⚔️ | **Troop render cap** | Only draws the first N allies and N enemies. Everyone still exists and still fights, they just aren't rendered. Turns late-Endless slideshows back into a game. |
+| 🎚️ | **In-game settings** | A **9 Qualities of Life** tab in the options menu. Troop cap, FPS limit and every feature toggle, styled like the game's own. |
+| ⏩ | **4x and 10x speed** | Click the 3x button again. 3x → 4x → 10x → 3x. Icon tints amber, then red. |
+| 🃏 | **Card level counts** | Loot, shop and hand cards show how many of that card you own at each level (`Lv. 1: 2   Lv. 2: 1`). Spot the pending level-up before you pick. |
+| 🔵 | **Upgrade plot glow** | Pick up a card and every plot it would *level up* lights up with the game's own plot marker. No more hovering plot by plot. |
+| 🏷️ | **Plot level labels** | Every occupied plot shows `Lv 2/4` on the map at all times. Gold when maxed. |
+| ⌨️ | **Hotkeys** | **Space** starts the battle. **F** rerolls the king. Hold **V** to see which plots the next blessing or cataclysm will hit. |
+| 🚀 | **Faster animations** | Card reveals, fades, popups and level-up chains run at 2x between battles, UI animators run at 1.5x, and the pause between end-of-wave events is halved. Combat speed is untouched. |
+| 🖥️ | **FPS limit** | Cap the frame rate from inside a run, not just the main menu. |
 
-## Requirements
+Every feature can be switched off in the options menu or the config file.
 
-- 9 Kings (Steam, IL2CPP build, Unity 6000.3.x)
-- BepInEx 6 Bleeding Edge IL2CPP x64 (tested with 6.0.0-be.755, which supports
-  this game's IL2CPP metadata v39)
+## 📸 Screenshots
 
-## Install
+<!-- Screenshot slots. Drop PNGs into docs/screenshots/ with these names. -->
 
-1. Install BepInEx IL2CPP into the game folder (Thunderstore package
-   `BepInEx-BepInExPack_IL2CPP` works) and run the game once so
-   `BepInEx/interop/` gets generated.
-2. Drop `NineQoL.dll` into `BepInEx/plugins/`.
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/plot-labels.png" alt="Plot level labels" width="440"><br><sub><b>Plot level labels</b> — see every level at a glance</sub></td>
+    <td align="center"><img src="docs/screenshots/upgrade-glow.png" alt="Upgrade plot glow" width="440"><br><sub><b>Upgrade glow</b> — hold a card, upgradeable plots light up</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/card-counts.png" alt="Card level counts" width="440"><br><sub><b>Card level counts</b> — under loot and shop cards</sub></td>
+    <td align="center"><img src="docs/screenshots/options-menu.png" alt="Options menu" width="440"><br><sub><b>Options menu</b> — everything is a toggle</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/speed-10x.png" alt="10x speed" width="440"><br><sub><b>10x speed</b> — the 3x button goes further</sub></td>
+    <td align="center"><img src="docs/screenshots/event-preview.png" alt="Event plot preview" width="440"><br><sub><b>Event preview</b> — hold V to see the next cataclysm's plots</sub></td>
+  </tr>
+</table>
 
-## Build from source
+## 📦 Install
+
+**Thunderstore / r2modman / Gale** — install *9 Qualities of Life* from the 9 Kings community. BepInEx is pulled in automatically.
+
+**Manual**
+
+1. Install [BepInEx 6 IL2CPP](https://thunderstore.io/c/9-kings/p/BepInEx/BepInExPack_IL2CPP/) into the game folder and launch the game once.
+2. Grab the latest `NineQoL-x.y.z-nexus.zip` from [Releases](https://github.com/M4cs/9QoL/releases/latest) and drop its `BepInEx` folder onto your game folder, so the DLL lands in `BepInEx/plugins/NineQoL.dll`.
+3. Play. The **9 Qualities of Life** tab appears in the options menu.
+
+Requires 9 Kings on Steam (Unity 6000.3, IL2CPP) and BepInEx 6.0.0-be.755 or newer.
+
+## 🎮 Controls
+
+| Key | Action | When |
+|---|---|---|
+| `Space` | Start battle | Placing phase |
+| `F` | Reroll the king's offer | Placing phase, when the reroll button is shown |
+| `V` (hold) | Mark the plots the next blessing / cataclysm will hit | Placing phase |
+| `3x` button | Cycle 3x → 4x → 10x | During battle |
+
+Keys are configurable. Avoid keys the game already uses: `R` (quick restart), `C`, `I`, `K`, `O`, `P`, `Q`, `Tab`, `1` `2` `3`.
+
+## ⚙️ Configuration
+
+Everything lives in `BepInEx/config/dev.oglabs.9kings.qol.cfg` (created on first launch). The common ones also have a slider or toggle in the options menu.
+
+<details>
+<summary><b>All settings</b></summary>
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `Enabled` | `true` | Master switch for the troop render cap. |
+| `MaxVisibleAllies` / `MaxVisibleEnemies` | `150` | How many of each side are drawn at once. |
+| `RefreshInterval` | `0.5` | Seconds between visibility passes. |
+| `DisableHiddenAnimators` | `true` | Also pause Unity animators on hidden troops (most of the CPU savings). |
+| `AlwaysShowBosses` | `true` | Bosses are never hidden and never count toward the cap. |
+| `FpsLimit` | `0` | Frame-rate cap, 0 = off. |
+| `SpeedCycleSpeeds` | `3,4,10` | Speeds the 3x button cycles through. First entry must be 3. |
+| `ShowCardLevelBreakdown` | `true` | Level counts under loot / shop / hand cards. |
+| `UpgradeGlow` | `true` | Mark upgradeable plots while holding a card. |
+| `UpgradeGlowStyle` | `Marker` | `Marker` (game's plot marker), `Tint` (blue plot tint) or `Outline`. |
+| `UpgradeGlowColor` | `#4C8CFF` | Tint colour for the `Tint` style. `auto` samples the game's blessing colour. |
+| `PlotLevelLabels` | `true` | Always-visible level label on occupied plots. |
+| `PlotLevelLabelFormat` | `Lv {level}/{max}` | Label text. `/{max}` is dropped for cards without a cap. |
+| `PlotLevelLabelScale` | `1` | Label size multiplier. |
+| `PlotLevelLabelVerticalOffset` | `-0.3` | Label position in plot heights (0 = centre, -0.5 = bottom corner). |
+| `Hotkeys.Enabled` | `true` | Keyboard shortcuts on/off. |
+| `StartBattleKey` / `KingRerollKey` / `CataclysmPreviewKey` | `Space` / `F` / `V` | Key names from Unity's InputSystem. `None` disables one. |
+| `FasterAnimations` | `true` | Master switch for the three speed-ups below. |
+| `IdleTimeScale` | `2` | Game speed held while no battle is running. 1 = off. |
+| `UiAnimatorSpeed` | `1.5` | Playback speed of the gameplay UI's animators. |
+| `EventDelayScale` | `0.5` | Multiplier for the delay between end-of-wave events and plot popups. |
+| `VerboseLogging` | `false` | Extra diagnostics in `BepInEx/LogOutput.log`. |
+
+</details>
+
+## 🧠 How it works (for the curious)
+
+- **Render cap.** A background component walks the game's live troop list twice a second and flips `Renderer.forceRenderingOff` on troops past the cap. That flag is rendering-only; combat, targeting, movement and wave logic never read it. Animators the mod pauses are remembered and only those are resumed.
+- **Upgrade glow.** The game marks blessing / cataclysm plots by toggling a marker object on each plot. The mod toggles the same object for every plot where the game's own placement check says the held card would go on top of an existing one.
+- **Plot labels.** World-space TextMeshPro objects parented to each plot, using the plot's own damage-text font and sorting layer.
+- **Faster animations.** Almost every fade, reveal and popup in the game runs on scaled time through the game's `Progress` helper, so holding the time scale at 2x between battles speeds all of them at once. The boost only engages while a between-battle screen is up and no enemy is alive.
+- **Hotkeys** press the real buttons, so the game's own sound effects and state changes happen exactly as with a click.
+
+## 🛠️ Build from source
 
 ```
 dotnet build NineQoL.csproj -c Release
 ```
 
-The csproj references BepInEx core + interop assemblies straight out of the
-game folder (`<GamePath>` property — edit it if your install lives elsewhere)
-and copies the built DLL into `BepInEx/plugins/` automatically.
+The project references BepInEx and the game's generated interop assemblies straight out of the game folder (`GamePath` in the csproj, or the `NINEKINGS_PATH` environment variable) and copies the DLL into `BepInEx/plugins/` and `dist/` after every build.
 
-## Releasing
+<details>
+<summary><b>Releasing</b></summary>
 
-Releases are cut from git tags by `.github/workflows/release.yml`. The plugin
-needs the game's interop assemblies to compile, so it is built locally and the
-result in `dist/NineQoL.dll` is committed; the workflow only verifies and
-packages it.
+Releases are cut from git tags by `.github/workflows/release.yml`. The plugin needs the game's interop assemblies to compile, so it is built locally and `dist/NineQoL.dll` is committed; the workflow verifies and packages it.
 
-1. Bump `PluginVersion` in `Plugin.cs` and `version_number` in
-   `manifest.json` to the same value, and add a `## <version>` section to
-   `CHANGELOG.md`.
-2. `dotnet build NineQoL.csproj -c Release` (updates `dist/NineQoL.dll`).
-3. Commit, then `git tag v<version> && git push --tags`.
+1. Set the same version in `Plugin.cs` (`PluginVersion`) and `manifest.json` (`version_number`), add a `## <version>` section to `CHANGELOG.md`.
+2. `dotnet build NineQoL.csproj -c Release`, commit.
+3. `git tag v<version> && git push --tags`.
 
-The workflow refuses to publish if the tag, `Plugin.cs` and `manifest.json`
-disagree. It attaches two zips to the GitHub Release:
+The workflow refuses to publish if the versions disagree, and attaches `NineQoL-<version>-thunderstore.zip` (upload as-is to Thunderstore) and `NineQoL-<version>-nexus.zip` (`BepInEx/plugins/` layout for Nexus / manual installs) to the GitHub Release.
 
-- `NineQoL-<version>-thunderstore.zip` — upload as-is to the
-  [9 Kings Thunderstore community](https://thunderstore.io/c/9-kings/).
-- `NineQoL-<version>-nexus.zip` — `BepInEx/plugins/NineQoL.dll` plus docs,
-  for Nexus Mods and manual installs.
+</details>
 
-## Configuration
+## 🙋 Notes
 
-`BepInEx/config/dev.oglabs.9kings.qol.cfg` (created on first run):
-
-| Setting | Default | Meaning |
-|---|---|---|
-| `Enabled` | `true` | Master switch; turning it off restores all troops to visible. |
-| `MaxVisibleAllies` | `150` | Max allied troops drawn at once. |
-| `MaxVisibleEnemies` | `150` | Max enemy troops drawn at once. |
-| `RefreshInterval` | `0.5` | Seconds between visibility passes. |
-| `DisableHiddenAnimators` | `true` | Also stop Unity Animators on hidden troops (most of the CPU savings). |
-| `AlwaysShowBosses` | `true` | Bosses never get hidden and don't count toward caps. |
-| `SpeedCycleSpeeds` | `3,4,10` | Game speeds the 3x button cycles through on repeated clicks (first entry must be the game's own 3x). |
-| `ShowCardLevelBreakdown` | `true` | Per-level plot counts under loot/shop cards. |
-| `UpgradeGlow` | `true` | Mark every plot the held card would upgrade while the card is held. |
-| `UpgradeGlowStyle` | `Marker` | `Marker` (game's blessing/cataclysm plot marker), `Tint` (blue plot tint) or `Outline` (card effect outline). |
-| `UpgradeGlowColor` | `#4C8CFF` | Tint colour for the `Tint` style (`#RRGGBB` or `#RRGGBBAA`; `auto` samples the game's blessing popup colour). |
-| `Hotkeys.Enabled` | `true` | Placing-phase keyboard shortcuts on/off. |
-| `StartBattleKey` | `Space` | Key that presses START BATTLE. `None` disables. |
-| `KingRerollKey` | `F` | Key that presses the king reroll button. `None` disables. |
-| `CataclysmPreviewKey` | `V` | Hold to mark the plots the upcoming blessing/cataclysm will hit. |
-| `PlotLevelLabels` | `true` | Always-visible level label on occupied plots. |
-| `PlotLevelLabelFormat` | `Lv {level}/{max}` | Label text; `/{max}` is dropped for cards without a level cap. |
-| `PlotLevelLabelScale` | `1` | Label size multiplier. |
-| `PlotLevelLabelVerticalOffset` | `-0.3` | Vertical position in plot sprite heights (0 = centre, -0.5 = bottom corner, 0.5 = top corner). |
-| `FasterAnimations` | `true` | Master switch for the three speed-ups below. |
-| `IdleTimeScale` | `2` | Game speed held while no battle runs (loot, shop, placing). 1 = off. |
-| `UiAnimatorSpeed` | `1.5` | Playback speed of gameplay-UI animators. |
-| `EventDelayScale` | `0.5` | Multiplier for DelayBetweenEvents / TimeToNextWave / plot popup delays. |
-
-## Notes / limitations
-
-- When a visible troop dies, a hidden one takes its render slot on the next
-  refresh pass, so you may notice troops "popping in" within half a second.
-- Hit effects, blood, and projectiles still spawn for hidden troops (they're
-  separate objects); only the troop bodies are culled.
-- The interop assemblies regenerate when the game updates; if an update renames
-  `TroopSystem`/`Troop`/`m_Renderers`, rebuild against the new
-  `BepInEx/interop/Assembly-CSharp.dll`.
+- Hidden troops still spawn hit effects, blood and projectiles; only the bodies are culled. When a visible troop dies, a hidden one takes its slot within half a second.
+- The mod reads the game's own types by name. If a game update renames them, the affected feature logs a warning and turns itself off; rebuild against the new interop assemblies to bring it back.
+- Found a bug or want another quality of life? [Open an issue](https://github.com/M4cs/9QoL/issues).

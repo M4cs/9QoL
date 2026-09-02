@@ -13,7 +13,7 @@ public class NineQoLPlugin : BasePlugin
 {
     public const string PluginGuid = "dev.oglabs.9kings.qol";
     public const string PluginName = "9 Qualities of Life";
-    public const string PluginVersion = "1.4.0";
+    public const string PluginVersion = "1.0.0";
 
     internal static ManualLogSource Logger;
 

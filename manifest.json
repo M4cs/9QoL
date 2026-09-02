@@ -1,6 +1,6 @@
 {
   "name": "NineQualitiesOfLife",
-  "version_number": "1.4.0",
+  "version_number": "1.0.0",
   "website_url": "https://github.com/M4cs/9QoL",
   "description": "Performance and quality-of-life tweaks for 9 Kings: troop render cap, FPS limit, plot level labels, upgrade plot glow, hotkeys, faster animations, 4x/10x speed.",
   "dependencies": [
