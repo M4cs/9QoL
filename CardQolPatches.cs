@@ -7,6 +7,7 @@ using Core.Itens;
 using Core.Kingdoms;
 using GameplayInterface;
 using HarmonyLib;
+using Il2CppInterop.Runtime;
 using TMPro;
 using UnityEngine;
 
@@ -157,21 +158,18 @@ internal static class CardQolPatches
         if (template == null || parent == null)
             return null;
 
-        var go = UnityEngine.Object.Instantiate(template.gameObject, parent);
-        go.name = "ModCardLevelBreakdown";
-        var label = go.GetComponent<TMP_Text>();
-        if (label == null)
-        {
-            UnityEngine.Object.Destroy(go);
-            return null;
-        }
-
-        // The clone may inherit components that hide it: a CanvasGroup at
-        // alpha 0, or masking that clips anything outside the card art.
-        var canvasGroup = go.GetComponent<CanvasGroup>();
-        if (canvasGroup != null)
-            UnityEngine.Object.Destroy(canvasGroup);
+        // Do not clone the card's existing text object. Some card prefabs put
+        // gameplay scripts on that same object; cloning it duplicates their
+        // Update callbacks without their required references, producing a
+        // NullReferenceException every frame. The cloned UI could also retain
+        // raycastTarget and intercept the pointer while a card is dropped.
+        var go = new GameObject("ModCardLevelBreakdown", Il2CppType.Of<RectTransform>());
+        go.transform.SetParent(parent, false);
+        var label = go.AddComponent<TextMeshProUGUI>();
+        label.font = template.font;
+        label.fontSharedMaterial = template.fontSharedMaterial;
         label.maskable = false; // card widgets mask their content; opt out
+        label.raycastTarget = false;
 
         var rect = go.GetComponent<RectTransform>();
         var cardRect = parent.TryCast<RectTransform>();
@@ -415,16 +413,46 @@ internal static class CardQolPatches
         return card;
     }
 
-    /// <summary>A plot is an upgrade target when it already holds something
-    /// and the game itself says the held card can go there (for an occupied
-    /// plot that means: same card, not max level).</summary>
+    /// <summary>A plot is an upgrade target when it holds the same card and is
+    /// not at its level cap. Do not call KingdomArea.CanPlace here: the game
+    /// already calls it as part of dragging/dropping, and invoking it again
+    /// from our visual-only refresh breaks placement for cards whose transient
+    /// placement context has already been consumed by the first call.</summary>
     private static bool IsUpgradeTarget(KingdomArea area, CardSo selected)
     {
         if (selected == null || selected.IsSpell)
             return false;
         if (!area.Unlocked || !area.HasPlaced)
             return false;
-        return area.CanPlace(selected);
+
+        var placed = area.Placed;
+        if (placed == null)
+            return false;
+
+        string selectedName;
+        string placedName;
+        try
+        {
+            selectedName = selected.ItemNameString;
+            placedName = placed.ItemNameString;
+        }
+        catch
+        {
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(selectedName) || selectedName != placedName)
+            return false;
+
+        try
+        {
+            return placed.LimitlessLevels || placed.MaxLevel <= 0 || placed.MaxLevel >= 99 ||
+                   placed.CardLevel < placed.MaxLevel;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static void SetGlow(KingdomArea area, bool on)
@@ -540,8 +568,14 @@ internal static class CardQolPatches
     {
         var raw = NineQoLPlugin.UpgradeGlowStyle.Value;
         if (!string.IsNullOrEmpty(raw) && Enum.TryParse(raw.Trim(), true, out GlowStyle style))
-            return style;
-        return GlowStyle.Marker;
+        {
+            // In the current game build m_AlertIcon is part of the placement
+            // indicator system, not a passive visual. Forcing it active causes
+            // its uninitialized behaviour to throw every frame and breaks the
+            // drop. Render the public Marker option as a safe tint instead.
+            return style == GlowStyle.Marker ? GlowStyle.Tint : style;
+        }
+        return GlowStyle.Tint;
     }
 
     /// <summary>Tint colour. "auto" samples the game's own blessing colour

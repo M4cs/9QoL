@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.1
+
+- Fixed upgrade cards failing to drop with repeated null-reference errors
+- Made card-level count labels non-interactive so they cannot block pointer input
+- Reworked upgrade targeting to avoid duplicate placement checks
+- Made the Marker upgrade glow use a safe plot tint on current game builds
+- Persisted the selected 3x/4x/10x speed across runs and game restarts
+
 ## 1.0.0
 
 First public release.

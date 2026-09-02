@@ -55,6 +55,8 @@ internal static class SpeedCyclePatches
             }
             _speeds = speeds;
             _labels = labels;
+            _level = Mathf.Clamp(NineQoLPlugin.SelectedSpeedCycleLevel.Value, 0, _speeds.Length - 1);
+            SaveSelectedLevel();
         }
         catch (Exception ex)
         {
@@ -75,8 +77,13 @@ internal static class SpeedCyclePatches
 
     [HarmonyPatch(typeof(GameplayUI_ChangeSpeedView), nameof(GameplayUI_ChangeSpeedView.SetSuperFastSpeed))]
     [HarmonyPrefix]
-    private static void SuperFastClicked_Prefix()
+    private static void SuperFastClicked_Prefix(GameplayUI_ChangeSpeedView __instance)
     {
+        // A new run creates another speed view and calls SetSuperFastSpeed
+        // during initialization. Do not mistake that for a repeated click and
+        // advance the persisted selection.
+        if (_view == null || __instance == null || _view.GetInstanceID() != __instance.GetInstanceID())
+            _superFastActive = false;
         _wasSuperFastBeforeClick = _superFastActive;
     }
 
@@ -87,7 +94,13 @@ internal static class SpeedCyclePatches
         try
         {
             _view = __instance;
-            _level = _wasSuperFastBeforeClick ? (_level + 1) % _speeds.Length : 0;
+            // Enter SuperFast at the last chosen level. Only repeated clicks
+            // while already in SuperFast advance the cycle.
+            if (_wasSuperFastBeforeClick)
+            {
+                _level = (_level + 1) % _speeds.Length;
+                SaveSelectedLevel();
+            }
             _superFastActive = true;
             UpdateButtonVisual();
             NineQoLPlugin.Logger.LogInfo($"Speed cycle: {_labels[_level]} (target speed {_speeds[_level]:0.##})");
@@ -113,10 +126,9 @@ internal static class SpeedCyclePatches
             }
             else
             {
-                // Leaving SuperFast (normal/fast/paused): reset the cycle and
-                // let the game's own timescale handling stand untouched.
+                // Leaving SuperFast must not discard the chosen level. The
+                // next run/scene (and the next game launch) resumes it.
                 _superFastActive = false;
-                _level = 0;
                 UpdateButtonVisual();
             }
         }
@@ -124,6 +136,13 @@ internal static class SpeedCyclePatches
         {
             NineQoLPlugin.Logger.LogWarning($"Speed state tracking failed: {ex}");
         }
+    }
+
+    private static void SaveSelectedLevel()
+    {
+        if (NineQoLPlugin.SelectedSpeedCycleLevel != null &&
+            NineQoLPlugin.SelectedSpeedCycleLevel.Value != _level)
+            NineQoLPlugin.SelectedSpeedCycleLevel.Value = _level;
     }
 
     private static void UpdateButtonVisual()

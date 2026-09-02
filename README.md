@@ -93,6 +93,7 @@ Everything lives in `BepInEx/config/dev.oglabs.9kings.qol.cfg` (created on first
 | `AlwaysShowBosses` | `true` | Bosses are never hidden and never count toward the cap. |
 | `FpsLimit` | `0` | Frame-rate cap, 0 = off. |
 | `SpeedCycleSpeeds` | `3,4,10` | Speeds the 3x button cycles through. First entry must be 3. |
+| `SelectedSpeedCycleLevel` | `0` | Last selected speed-cycle entry; maintained automatically across runs and restarts. |
 | `ShowCardLevelBreakdown` | `true` | Level counts under loot / shop / hand cards. |
 | `UpgradeGlow` | `true` | Mark upgradeable plots while holding a card. |
 | `UpgradeGlowStyle` | `Marker` | `Marker` (game's plot marker), `Tint` (blue plot tint) or `Outline`. |

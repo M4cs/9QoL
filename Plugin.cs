@@ -13,7 +13,7 @@ public class NineQoLPlugin : BasePlugin
 {
     public const string PluginGuid = "dev.oglabs.9kings.qol";
     public const string PluginName = "9 Qualities of Life";
-    public const string PluginVersion = "1.0.0";
+    public const string PluginVersion = "1.0.1";
 
     internal static ManualLogSource Logger;
 
@@ -24,6 +24,7 @@ public class NineQoLPlugin : BasePlugin
     internal static ConfigEntry<bool> DisableHiddenAnimators;
     internal static ConfigEntry<bool> AlwaysShowBosses;
     internal static ConfigEntry<string> SpeedCycleSpeeds;
+    internal static ConfigEntry<int> SelectedSpeedCycleLevel;
     internal static ConfigEntry<bool> DebugDumpOptionsMenu;
     internal static ConfigEntry<bool> VerboseLogging;
     internal static ConfigEntry<bool> ShowCardLevelBreakdown;
@@ -74,6 +75,8 @@ public class NineQoLPlugin : BasePlugin
         SpeedCycleSpeeds = Config.Bind("Speed", "SpeedCycleSpeeds", "3,4,10",
             "Comma-separated game speeds the triple-speed button cycles through on repeated clicks. " +
             "The first entry must be the game's own SuperFast speed (3).");
+        SelectedSpeedCycleLevel = Config.Bind("Speed", "SelectedSpeedCycleLevel", 0,
+            "Last selected entry in SpeedCycleSpeeds (zero-based). Updated automatically so the selection persists across runs and restarts.");
 
         FpsLimit = Config.Bind("Performance", "FpsLimit", 0,
             new ConfigDescription(
